@@ -1,0 +1,54 @@
+#!/bin/bash
+
+FILE=$(readlink -f $0)
+DIR=$(dirname $FILE)
+
+DO_TRACK=0
+DO_BUILD=0
+OPEN_AFTER_BUILD=0
+REQUIRE_LEDGER=0
+LEDGER=""
+
+help() {
+    local _README="$DIR/README.md"
+
+    batcat "$_README" || cat "$_README"
+}
+
+while [[ -n $1 ]]; do
+    case $1 in
+    --track | -t) DO_TRACK=1 && REQUIRE_LEDGER=1 ;;
+    --build | -b) DO_BUILD=1 ;;
+    --ledger | -l) LEDGER="$2" ;;
+    --open | -o) OPEN_AFTER_BUILD=1 ;;
+    --help | -h) help && exit ;;
+    esac
+    shift
+done
+
+
+[[ $REQUIRE_LEDGER == 1 && $LEDGER == "" ]] &&
+    echo "You must specify a ledger!" &&
+    exit 1
+
+[[ $DO_TRACK == 1 ]] &&
+    ./src/track --dir "$DIR" --ledger "$LEDGER"
+
+if [[ $DO_BUILD == 1 ]]; then
+    INDEX_LOCATION="public/index.html"
+    LEDGERS=()
+
+    rm "${DIR}/public"/*.html || echo ''
+
+    FILES=`ls $DIR/storage/ledgers`
+    for _ledger in $FILES; do
+        ./src/build --dir "$DIR" --ledger "$_ledger"
+        LEDGERS+=("<li><a href='./${_ledger}_overview.html'>${_ledger}</a></li>")
+    done
+
+    sed -e "s;{{LEDGERS}};${LEDGERS[*]};g" "src/template/index.template.html" > "${INDEX_LOCATION}"
+
+    [[ $OPEN_AFTER_BUILD == 1 ]] && xdg-open "${INDEX_LOCATION}"
+fi
+
+exit 0

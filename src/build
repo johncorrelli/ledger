@@ -1,0 +1,125 @@
+#!/bin/bash
+
+DIR=""
+LEDGER=""
+
+while [[ -n $1 ]]; do
+    case $1 in
+    --dir | -d) DIR="$2" ;;
+    --ledger | -l) LEDGER="$2" ;;
+    esac
+    shift
+done
+
+PAYMENTS="$DIR/storage/ledgers/$LEDGER"
+
+[[ $LEDGER == "" ]] && echo "You must specify a ledger!" && exit 1
+[[ ! -f $PAYMENTS ]] &&
+    echo "Ledger not found! Please track a payment to the ledger before trying to pull its history" &&
+    exit 1
+
+# Files
+REPORT_TEMPLATE="$DIR/src/template/report.template.html"
+REPORT_ROW_TEMPLATE="$DIR/src/template/report-row.template.html"
+RECEIPT_TEMPLATE="$DIR/src/template/receipt.template.html"
+OUTPUT_DIR="$DIR/public"
+
+# Titles
+HAS_TITLE=0
+TITLE_TEXT=""
+SUBTITLE_TEXT=""
+
+# Payments
+COUNTER=0
+TOTAL_PAID=0
+PAYMENT_LOG=()
+
+# CSS Classes
+TOTAL_ROW_CLASS="table-success"
+
+function _append_to_log() {
+    PAYMENT_LOG+=("$*")
+}
+
+function _process_title() {
+    local _input="$*"
+
+    TITLE_TEXT=$(echo "$_input" | cut -f1 -s)
+    SUBTITLE_TEXT=$(echo "$_input" | cut -f2 -s)
+}
+
+function calculate() {
+    echo $(echo "scale=2; $1" | bc -l | awk '{printf "%.2f\n", $0}')
+}
+
+function _process_record() {
+    local _input="$*"
+    local _date=$(echo "$_input" | cut -f1 -s)
+    local _category=$(echo "$_input" | cut -f2 -s)
+    local _payer=$(echo "$_input" | cut -f3 -s)
+    local _amount=$(echo "$_input" | cut -f4 -s)
+    local _notes=$(echo "$_input" | cut -f5 -s)
+
+    _render_row "" "$_date" "$_category" "$_payer" "$_amount" "$_notes"
+
+    TOTAL_PAID=$(calculate "$TOTAL_PAID + $_amount")
+    COUNTER=$(($COUNTER + 1))
+}
+
+function _render_row() {
+    local _row_class="$1"
+    local _date="$2"
+    local _category="$3"
+    local _payer="$4"
+    local _amount="$5"
+    local _notes="$6"
+    local _row_receipt_link="${LEDGER}_${COUNTER}.html"
+
+    # Overview row
+    _append_to_log $(
+        sed -e "s;{{TITLE}};${TITLE_TEXT};g" \
+            -e "s;{{SUBTITLE}};${SUBTITLE_TEXT};g" \
+            -e "s;{{ROW_RECEIPT_LINK}};${_row_receipt_link};g" \
+            -e "s;{{ROW_CLASS}};${_row_class};g" \
+            -e "s;{{DATE}};${_date};g" \
+            -e "s;{{CATEGORY}};${_category};g" \
+            -e "s;{{PAYER}};${_payer};g" \
+            -e "s;{{AMOUNT}};${_amount};g" \
+            -e "s;{{NOTES}};${_notes};g" "${REPORT_ROW_TEMPLATE}"
+    )
+
+    # Individual receipt
+    [[ $_row_class != $TOTAL_ROW_CLASS ]] && \
+        sed -e "s;{{TITLE}};${TITLE_TEXT};g" \
+            -e "s;{{SUBTITLE}};${SUBTITLE_TEXT};g" \
+            -e "s;{{DATE}};${_date};g" \
+            -e "s;{{CATEGORY}};${_category};g" \
+            -e "s;{{PAYER}};${_payer};g" \
+            -e "s;{{AMOUNT}};${_amount};g" \
+            -e "s;{{NOTES}};${_notes};g" "${RECEIPT_TEMPLATE}" > "${OUTPUT_DIR}/${_row_receipt_link}"
+
+}
+
+# Build Log
+while read line; do
+    # The first line of the ledger contains the title/subtitle
+    [[ $HAS_TITLE == 0 ]] &&
+        HAS_TITLE=1 &&
+        _process_title "$line" &&
+        continue
+
+    _process_record "$line"
+done <"${PAYMENTS}"
+
+# Add total row
+_render_row "$TOTAL_ROW_CLASS" "" "" "" "$TOTAL_PAID" ""
+
+# Escape / and leave no extraneaous whitespace between array elements
+IFS=''
+HTML=$(echo "${PAYMENT_LOG[*]}" | sed 's;/;\/;g')
+
+sed -e "s;{{RECORDS}};${HTML};g" \
+    -e "s;{{TITLE}};${TITLE_TEXT};g" \
+    -e "s;{{SUBTITLE}};${SUBTITLE_TEXT};g" "${REPORT_TEMPLATE}" > "${OUTPUT_DIR}/${LEDGER}_overview.html"
+
+exit 0

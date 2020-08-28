@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" />
+
+<head>
+    <title>The Ledger</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script src="https://combinatronics.com/phstc/jquery-dateFormat/master/dist/jquery-dateformat.js"></script>
+
+    <script language="javascript" type="text/javascript">
+
+        window.addEventListener('load', function () {
+            const dates = $('.invoice-date').map((_, ele) => {
+                const rawValue = $(ele).text();
+
+                if (rawValue === '') {
+                    return;
+                }
+
+                const rawDate = `${rawValue}T00:00:00`;
+
+                $(ele).html($.format.date(rawDate, $(ele).attr('format')));
+            });
+        });
+
+    </script>
+</head>
+
+<body>
+    <div class="pt-5 pl-5 pr-5 clearfix">
+        <img src="./assets/logo.png" class="float-left" width="100" />
+        <div class="text-right">
+            <h1>{{TITLE}}</h1>
+            <h6>{{SUBTITLE}}</h6>
+        </div>
+    </div>
+
+    <div class="p-5">
+        <h1 class="text-center">
+            <span class="border border-danger rounded p-2 text-danger" style="border-width: 3px !important;">Paid</span>
+        </h1>
+
+        <div class="card mt-5" style="width: 24rem;">
+            <div class="card-body">
+                <h5 class="card-title h1">{{CATEGORY}}</h5>
+                <h6 class="card-subtitle mb-2 text-muted invoice-date" format="'Recorded on:' D 'of' MMMM yyyy">{{DATE}}</h6>
+                <p class="card-text">{{PAYER}}</p>
+                <p class="card-text">$ {{AMOUNT}}</p>
+                <p class="card-text font-italic">{{NOTES}}</p>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

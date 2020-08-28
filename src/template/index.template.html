@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" />
+
+<head>
+    <title>The Ledger</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script src="https://combinatronics.com/phstc/jquery-dateFormat/master/dist/jquery-dateformat.js"></script>
+
+    <script language="javascript" type="text/javascript">
+
+        window.addEventListener('load', function () {
+            const dates = $('.invoice-date').map((_, ele) => {
+                const rawValue = $(ele).text();
+
+                if (rawValue === '') {
+                    return;
+                }
+
+                const rawDate = `${rawValue}T00:00:00`;
+
+                $(ele).html($.format.date(rawDate, $(ele).attr('format')));
+            });
+        });
+
+    </script>
+</head>
+
+<body>
+    <div class="pt-5 pl-5 pr-5 clearfix">
+        <img src="./assets/logo.png" class="float-left" width="100" />
+    </div>
+
+    <div class="p-5">
+        <div><b>Select a Ledger:</b></div>
+        <ul>
+            {{LEDGERS}}
+        </ul>
+    </div>
+
+</body>
+
+</html>

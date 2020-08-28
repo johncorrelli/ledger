@@ -1,0 +1,47 @@
+#!/bin/bash
+
+LEDGER=""
+DIR=""
+
+while [[ -n $1 ]]; do
+    case $1 in
+    --dir | -d) DIR="$2" ;;
+    --ledger | -l) LEDGER="$2" ;;
+    esac
+    shift
+done
+
+STORAGE_ROOT="$DIR/storage/ledgers/"
+STORAGE="$STORAGE_ROOT/$LEDGER"
+
+[[ ! -d $STORAGE_ROOT ]] && mkdir -p "$DIR/storage/ledgers"
+if [[ ! -f $STORAGE ]]; then
+    echo "This looks like a new ledger! Congratulations!"
+
+    read -p "What should the title for this ledger be? "
+    TITLE="$REPLY"
+
+    read -p "What should the subtitle for this ledger be? "
+    SUB_TITLE="$REPLY"
+
+    echo -e "$TITLE"'\t'"$SUB_TITLE" >"$STORAGE"
+fi
+
+read -p "Which date did this post? (YYYY-MM-DD) "
+DATE="$REPLY"
+
+read -p "For which category? "
+CATEGORY="$REPLY"
+
+read -p "Who paid? "
+PAYER="$REPLY"
+
+read -p "How much did they pay? "
+AMOUNT="$REPLY"
+
+read -p "Any additional information? (cash/check number) "
+NOTES="$REPLY"
+
+echo -e "$DATE"'\t'"$CATEGORY"'\t'"$PAYER"'\t'"$AMOUNT"'\t'"$NOTES" >>"$STORAGE"
+
+echo "Information tracked. Thank you!"
